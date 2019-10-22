@@ -416,9 +416,8 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 	struct xua_asp_fsm_priv *xafp = fi->priv;
 	struct osmo_ss7_asp *asp = xafp->asp;
 	struct xua_msg *xua_in;
-	uint32_t traf_mode;
+	uint32_t traf_mode = 0;
 	struct xua_msg_part *part;
-	uint32_t rctx;
 	int i;
 
 	check_stop_t_ack(fi, event);
@@ -457,15 +456,24 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 			    traf_mode != M3UA_TMOD_LOADSHARE &&
 			    traf_mode != M3UA_TMOD_BCAST) {
 				peer_send_error(fi, M3UA_ERR_UNSUPP_TRAF_MOD_TYP);
-				break;
+				return;
 			}
 		}
 		if ((part = xua_msg_find_tag(xua_in, M3UA_IEI_ROUTE_CTX))) {
 			for (i = 0; i < part->len / sizeof(uint32_t); i++) {
-				rctx = osmo_load32be(&part->dat[i * sizeof(uint32_t)]);
-				if (!osmo_ss7_as_find_by_rctx(asp->inst, rctx)) {
+				uint32_t rctx = osmo_load32be(&part->dat[i * sizeof(uint32_t)]);
+				struct osmo_ss7_as *as = osmo_ss7_as_find_by_rctx(asp->inst, rctx);
+				if (!as) {
 					peer_send_error(fi, M3UA_ERR_INVAL_ROUT_CTX);
 					return;
+				}
+				if (traf_mode) { /* if the peer has specified a traffic mode at all */
+					/* Check if given AS(s) are configured for the respective
+					 * traffic mode type; send ERROR if not */
+					if (!osmo_ss7_as_tmode_compatible_xua(as, traf_mode)) {
+						peer_send_error(fi, M3UA_ERR_UNSUPP_TRAF_MOD_TYP);
+						return;
+					}
 				}
 			}
 		}

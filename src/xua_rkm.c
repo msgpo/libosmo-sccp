@@ -217,8 +217,18 @@ static int handle_rkey_reg(struct osmo_ss7_asp *asp, struct xua_msg *inner,
 			msgb_append_reg_res(resp, rk_id, M3UA_RKM_REG_ERR_INVAL_RKEY, 0);
 			return -1;
 		}
-		if (!as->cfg.mode_set_by_vty && _tmode)
+		if (!as->cfg.mode_set_by_vty && _tmode) {
 			as->cfg.mode = osmo_ss7_tmode_from_xua(_tmode);
+			as->cfg.mode_set_by_rkm = true;
+		} else if (_tmode) {
+			/* verify if existing AS has same traffic-mode as new request (if any) */
+			if (!osmo_ss7_as_tmode_compatible_xua(as, _tmode)) {
+				LOGPASP(asp, DLSS7, LOGL_NOTICE, "RKM: Non-matching Traffic Mode %u\n",
+					_tmode);
+				msgb_append_reg_res(resp, rk_id, M3UA_RKM_REG_ERR_UNSUPP_TRAF_MODE, 0);
+				return -1;
+			}
+		}
 	} else if (asp->inst->cfg.permit_dyn_rkm_alloc) {
 		/* Create an AS for this routing key */
 		snprintf(namebuf, sizeof(namebuf), "as-rkm-%u", rctx);

@@ -314,7 +314,10 @@ struct osmo_ss7_as {
 		enum osmo_ss7_asp_protocol proto;
 		struct osmo_ss7_routing_key routing_key;
 		enum osmo_ss7_as_traffic_mode mode;
+		/* traffic mode was configured by VTY / config file */
 		bool mode_set_by_vty;
+		/* traffic mode was configured by RKM (routing key management) */
+		bool mode_set_by_rkm;
 		uint32_t recovery_timeout_msec;
 		uint8_t qos_class;
 		struct {
@@ -525,6 +528,7 @@ osmo_sccp_simple_server_add_clnt(struct osmo_sccp_instance *inst,
 
 enum osmo_ss7_as_traffic_mode osmo_ss7_tmode_from_xua(uint32_t in);
 int osmo_ss7_tmode_to_xua(enum osmo_ss7_as_traffic_mode tmod);
+bool osmo_ss7_as_tmode_compatible_xua(struct osmo_ss7_as *as, uint32_t m3ua_tmt);
 
 /* VTY related */
 struct vty;
