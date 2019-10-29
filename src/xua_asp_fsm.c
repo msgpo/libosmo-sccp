@@ -465,7 +465,7 @@ static void xua_asp_fsm_inactive(struct osmo_fsm_inst *fi, uint32_t event, void 
 				rctx = osmo_load32be(&part->dat[i * sizeof(uint32_t)]);
 				if (!osmo_ss7_as_find_by_rctx(asp->inst, rctx)) {
 					peer_send_error(fi, M3UA_ERR_INVAL_ROUT_CTX);
-					break;
+					return;
 				}
 			}
 		}
